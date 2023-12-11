@@ -1,0 +1,189 @@
+\documentclass[12pt]{article}
+\usepackage{enumitem}
+\setenumerate[1]{label=\thesection.\arabic*.}
+\setenumerate[2]{label*=\arabic*.}
+\usepackage{amsmath}
+
+\begin{document}
+\textbf{\Large Pyomo Workshop}
+
+\section*{Exercises 1: Pyomo Fundamentals}
+
+\begin{description}
+\item[1.1 Knapsack example:] Solve the knapsack problem shown in the tutorial using your IDE (e.g., Spyder) or the command line: {\tt > python knapsack.py}. Which items are acquired in the optimal solution? What is the value of the selected items?
+  
+\item[1.2 Knapsack with improved printing:] 
+  The {\tt knapsack.py} example shown in the tutorial uses {\tt model.pprint()} to see the value of the solution variables. Starting with the code in {\tt knapsack\_print\_incomplete.py}, complete the missing lines to produce formatted output. Note that the Pyomo {\tt value} function should be used to get the floating point value of Pyomo modeling components (e.g., {\tt print(value(model.x[i]))}. Also print the value of the items selected (the objective), and the total weight. (A solution can be found in {\tt knapsack\_print\_soln.py}).
+
+\item[1.3 Changing data:]
+  If we were to increase the value of the wrench, at what point would it become selected as part of the optimal solution?
+  (A solution can be found in {\tt knapsack\_wrench\_soln.py}.)
+
+\item[1.4 Loading data from Excel:] In the knapsack example shown in the tutorial slides, the data is hardcoded at the top of the file. Instead of hard-coding the data,
+  use Python to load the data from a different source. You can start from the file  {\tt knapsack\_pandas\_excel\_incomplete.py}. (A solution that uses pandas to load the data from Excel is shown in {\tt knapsack\_pandas\_excel\_soln.py}.)
+  
+\item[1.5 NLP vs MIP:] Solve the knapsack problem with {\sc Ipopt} instead of {\tt glpk}. (Hint: switch {\tt glpk} to {\tt ipopt} in the call {\tt SolverFactory}. Print the solution values for {\tt model.x}. What happened? Why? 
+\end{description}
+
+\newpage
+\section*{Exercises 2: Pyomo Fundamentals}
+\begin{description}
+\item [2.1 Knapsack problem with rules:] Rules are important for defining indexed constraints, however, they can also be used for single (i.e. scalar) constraints. Starting with {\tt knapsack.py}, reimplement the model using rules for the objective and the constraints. (A solution can be found in {\tt knapsack\_rules\_soln.py}.)
+\item [2.2 Integer formulation of the knapsack problem:]
+Consider again, the knapsack problem. Assume now that we can acquire multiple items of the same type. In this new formulation, $x_i$ is now an integer variable instead of a binary variable. One way to formulate this problem is as follows:
+\begin{align*}
+  \max_{q,x} &\sum_{i \in A} v_i x_i &&\\
+  \mbox{s.t.} &\sum_{i \in A} w_i x_i \le W_{\mbox{max}} && \\
+  &x_i = \sum_{j=0}^N j q_{i,j} && \forall \; i \in A \\
+  &0 \le x \le N && \\
+  &q_{i,j} \in \{0,1\} && \forall i \in A, j \in \{0..N\}
+\end{align*}
+Starting with {\tt knapsack\_rules.py}, implement this new formulation and solve. Is the solution surprising? (A solution can be found in {\tt knapsack\_integer\_soln.py}.)
+%\item [2.3 Sensor placement with p-median:] The warehouse location problem is actually a well known formulation called the p-median problem. This formulation is useful for a number of discrete optimal location determination problems. 
+\end{description}
+
+\newpage
+\section*{Exercises 3: Pyomo Fundamentals}
+\begin{description}
+\item [3.1 Using the decorator notation for rules:] In the slides, we saw
+  an alternative notation for declaring and defining Pyomo components using decorators. Starting with the warehouse location problem in \newline {\tt warehouse\_location\_decorator\_incomplete.py} change the model to use the decorator notation. (A solution for this problem can be found in {\tt warehouse\_location\_decorator\_soln.py}.)
+\item [3.2 Changing Parameter values:] In the tutorial slides, we saw that a parameter could be specified to be {\tt mutable}. This tells Pyomo that the value of the parameter may change in the future, and allows the user to change the parameter value and resolve the problem without the need to rebuild the entire model each time. We will use this functionality to find a better solution to an earlier exercise. Considering again the knapsack problem, we would like to find when the wrench becomes valuable enough to be a part of the optimal solution. Create a Pyomo {\tt Parameter} for the value of the items, make it mutable, and then write a loop that prints the solution for different wrench values. Start with the file {\tt knapsack\_mutable\_parameter\_incomplete.py}. (A solution for this problem can be found in {\tt knapsack\_mutable\_parameter\_soln.py}.)
+
+\item [3.3 Integer cuts:] Often, it can be important to find not only the ``best'' solution, but a number of solutions that are equally optimal, or close to optimal. For discrete optimization problems, this can be done using something known as an integer cut. Consider again the knapsack problem where the choice of which items to select is a discrete variable  $x_i \; \forall \; i \in A$. Let $x_i^\star$ be a particular set of $x$ values we want to remove from the feasible solution space. We define an integer cut using two sets. The first set $S_0$ contains the indices for those variables whose current solution is $0$, and the second set $S_1$ consists of indices for those variables whose current solution is $1$. Given these two sets, an integer cut constraint that would prevent such a solution from appearing again is defined by,
+  \begin{align*}
+    \sum_{i \in S_0} x[i] + \sum_{i \in \in S_1}(1 - x[i]) \geq 1.
+  \end{align*}
+Starting with {\tt knapsack\_rules.py}, write a loop that solves the problem 5 times, adding an integer cut to remove the previous solution, and printing the value of the objective function and the solution at each iteration of the loop. (A solution for this problem can be found in {\tt knapsack\_integer\_cut\_soln.py}
+
+\item [3.4 Putting it all together with the lot sizing example: (Hart et al., 2017)] We will now write a complete model from scratch using a
+  well-known multi-period optimization problem for optimal lot-sizing adapted from Hagen et al. (2001) shown below.
+\begin{align}
+  \min \sum_{t \in T} c_t y_t + h^{+}_t I^{+}_t &+ h^{-}_t I^{-}_t && \\
+  \mbox{s.t.} \;\;\; I_t &= I_{t-1} + X_t - d_t \;\;\; &&\forall t \in T \\
+  I_t &= I^{+}_t - I^{-}_t && \forall t \in T\\
+  X_t &\le P y_t \;\;\; &&\forall t \in T \label{eqn.lotsizing.bigM} \\
+  X_t,\; I^{+}_t,\;I^{-}_t &\ge 0 \;\;\; &&\forall t \in T \\
+  y_t \; &\in \; \{0,1\} \;\;\; &&\forall t \in T
+\end{align}
+Our goal is to find the optimal production $X_t$ given known demands $d_t$, fixed cost $c_t$
+associated with active production in a particular time period, an inventory
+holding cost $h_t^{+}$ and a shortage cost $h^{-}_t$ (cost of keeping a backlog) of orders.
+The variable $y_t$ (binary) determines if we produce in time $t$ or not, and 
+$I^{+}_t$ represents inventory that we are storing across time period $t$, while $I^{-}_t$ represents
+the magnitude of the backlog.
+Note that equation (\ref{eqn.lotsizing.bigM}) is a constraint that only allows production in time period $t$ if the indicator variable $y_t{=}1$.
+
+Write a Pyomo model for this problem and solve it using {\tt glpk} using the data provided below. You can start with the file {\tt lot\_sizing\_incomplete.py}. (A solution is provided in {\tt lot\_sizing\_soln.py}.) \\
+
+\begin{tabular}{cp{3in}l}
+    Parameter & Description & Value \\
+    \hline \hline
+    $c$ & fixed cost of production & $4.6$ \\
+    $I^{+}_0$ & initial value of positive inventory & $5.0$ \\
+    $I^{-}_0$ & initial value of backlogged orders & $0.0$ \\
+    $h^{+}$ & cost (per unit) of holding inventory & $0.7$ \\
+    $h^{-}$ & shortage cost (per unit) & $1.2$ \\
+    $P$ & maximum production amount (big-M value) & $5$ \\
+    $d$ & demand & [$5, 7, 6.2, 3.1, 1.7$] \\
+    \hline
+\end{tabular}
+
+\end{description}
+
+\section*{Exercises: Nonlinear}
+
+\begin{description}
+\item[1.1 Alternative Initialization:] Effective initialization can be critical for solving nonlinear problems, since they can have several local solutions and numerical difficulties. Solve the Rosenbrock example using different initial values for the $x$ variables. Write a loop that varies the initial value
+  from $2.0$ to $6.0$, solves the problem, and prints the solution for each iteration of the loop.
+  (A solution for this problem can be found in {\tt rosenbrock\_init\_soln.py}.)
+
+\item[1.2 Evaluation errors:] Consider the following problem with initial values $x{=}5$, $y{=}5$.
+\begin{align*}
+  \min_{x,y} \; f(x,y)&=(x-1.01)^2 + y^2 \\
+  \mbox{s.t.} \;\;\; y &= \sqrt{x-1.0}
+\end{align*}
+\begin{enumerate}[label=(\alph*)]
+\item Starting with {\tt evaluation\_error\_incomplete.py}, formulate this Pyomo model and solve using {\sc Ipopt}. You should get a list of errors from the solver. Add the {\sc Ipopt} solver option \\ {\tt solver.options['halt\_on\_ampl\_error']='yes'} to find the problem. (Hint: error output might be ordered strangely, look up in the console output.) What did you discover? How might you fix this? (A solution for this can be found in {\tt evaluation\_error\_soln.py}.)
+\item Add bounds $x{\ge}1$ to fix this problem. Resolve the problem. Comment on the number of iterations and the quality of solution. (Note: The problem still occurs because $x\ge1$ is not enforced exactly, and small numerical values still cause the error.)
+  (A solution for this can be found in {\tt evaluation\_error\_bounds\_soln.py}.)
+\item Think about other solutions for this problem. (e.g., $x \ge 1.001$).
+ (A solution for this can be found in {\tt evaluation\_error\_bounds2\_soln.py}.)
+\end{enumerate}
+
+\newpage
+\item[1.3 Alternative Formulations:] Consider the following problem with initial values $x{=}5$, $y{=}5$.
+\begin{align*}
+  \min_{x,y} \; f(x,y)&=(x-1.01)^2 + y^2 \\
+  \mbox{s.t.} \;\;\; \frac{x-1}{y} &= 1
+\end{align*}
+Note that the solution to this problem is $x{=}1.005$ and $y{=}0.005$.
+There are several ways that the problem above can be reformulated. Some examples are shown below.
+Which ones do you expect to be better? Why? Starting with {\tt formulation\_incomplete.py} finish the Pyomo model for each of the
+formulations and solve with {\sc Ipopt}. Note the number of iterations and quality of solutions. What can you learn about problem formulation from these examples?
+
+\begin{enumerate}[label=(\alph*)]
+\item (A solution can be found in {\tt formulation\_1\_soln.py}.)
+  \begin{align*}
+    \min_{x,y} \; f(x,y)&=(x-1.01)^2 + y^2 \\
+    \mbox{s.t.} \;\;\; \frac{x-1}{y} &= 1
+  \end{align*}
+\item (A solution for this can be found in {\tt formulation\_2\_soln.py}.)
+  \begin{align*}
+  \min_{x,y} \; f(x,y)&=(x-1.01)^2 + y^2 \\
+  \mbox{s.t.} \;\;\; \frac{x}{y+1} &= 1
+  \end{align*}
+\item (A solution for this can be found in {\tt formulation\_3\_soln.py}.)
+  \begin{align*}
+  \min_{x,y} \; f(x,y)&=(x-1.01)^2 + y^2 \\
+  \mbox{s.t.} \;\;\; y &= x-1 \\
+  \end{align*}
+\item Bounds and initialization can be very helpful when solving nonlinear optimization problems. Starting with {\tt formulation\_incomplete.py} resolve the original problem, but add bounds, $y \ge 0$. Note the number of iterations and quality of solution, and compare with what you found in 1.2 (a). (A solution for this can be found in {\tt formulation\_4\_soln.py}.)
+\end{enumerate}
+
+
+\newpage
+\item[1.4 Reactor design problem (Hart et al., 2017; Bequette, 2003):]
+  In this example, we will consider a chemical reactor designed to produce product B from reactant A using a reaction scheme known as the Van de Vusse reaction:
+\[
+A \stackrel{k_1}{\rightarrow} B \stackrel{k_2}{\rightarrow} C
+\]
+\[
+2 A \stackrel{k_3}{\rightarrow} D 
+\]
+
+Under appropriate assumptions, $F$ is the volumetric flowrate through the tank. The concentation of component A in the feed is $c_{Af}$, and the concentrations in the reactor are equivalent to the concentrations of each component flowing out of the reactor, given by $c_A$, $c_B$, $c_C$, and $c_D$.
+
+If the reactor is too small, we will not produce sufficient quantity of B, and if the reactor
+is too large, much of B will be further
+reacted to form the undesired product C. Therefore, our goal is
+to solve for the reactor volume that maximizes the outlet
+concentration for product B.
+
+The steady-state mole balances for each of the four components are given by,
+\begin{eqnarray*}
+&&0 = \frac{F}{V} c_{Af} - \frac{F}{V} c_A - k_1 c_A -2 k_3 c_A^2\\
+&&0 = -\frac{F}{V} c_B + k_1 c_A - k_2 c_B \\
+&&0 = -\frac{F}{V} c_C + k_2 c_B \\
+&&0 = -\frac{F}{V} c_D + k_3 c_A^2
+\end{eqnarray*}
+The known parameters for the system are,
+\[
+c_{Af}=10 \; \frac{\mbox{gmol}}{\mbox{m}^3} \;\;\; k_1{=} \frac{5}{6} \; \mbox{min}^{-1} \;\;\; k_2{=} \frac{5}{3} \; \mbox{min}^{-1} \;\;\; k_3{=} \frac{1}{6000} \; \frac{\mbox{m}^3}{ \mbox{mol}\; \mbox{min}}.
+\]
+
+Formulate and solve this optimization problem using Pyomo. Since the volumetric flowrate $F$ always appears as the numerator over the reactor volume $V$, it is common to consider this ratio
+as a single variable, called the space-velocity $SV$. (A solution to this problem can be found in {\tt reactor\_design\_soln.py}.)
+\end{description}
+
+
+
+\section*{References}
+Hart, W. E., Laird, C. D., Watson, J. P., Woodruff, D. L., Hackebeil, G. A., Nicholson, B. L., and Siirola, J. D. “Pyomo: Optimization Modeling in Python (Second Edition)”, Vol (67), Springer Verlag, 2017.
+
+Kjetil K. Haugen, Arne Lkketangen, and David L. Woodruff. Progressive
+hedging as a meta-heuristic applied to stochastic lot-sizing. European Journal
+of Operational Research, 132(1):116 – 122, 2001
+
+B.W. Bequette. Process control: modeling, design, and simulation. Prentice
+Hall, 2003.
+\end{document}
