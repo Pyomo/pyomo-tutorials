@@ -22,7 +22,7 @@ model = ConcreteModel()
 
 model.RECTANGLES = Set(ordered=True, initialize=[0,1,2,3])
 
-# Width and Lenght of each rectangle
+# Width and Length of each rectangle
 model.Width = Param(model.RECTANGLES, initialize={0:6, 1:3, 2:4, 3:2})
 model.Length = Param(model.RECTANGLES, initialize={0:6, 1:8, 2:5, 3:3})
 
